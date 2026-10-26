@@ -1,0 +1,50 @@
+# SDD ledger — plan: docs/superpowers/plans/2026-10-25-time-reports.md
+
+User approved design and sequential implementation on 2026-10-25.
+Ruling: Work in the provided empty non-Git directory; Git worktree and Git-dependent skill scripts do not apply. Keep this persistent ledger instead, without commits. Cost: no commit-based rollback until user initializes Git.
+Pre-flight: Tasks 1→2 share User, Assignment, ContractTerms; historical-term invalidation tests finish in task 2 once reports exist.
+Pre-flight: Tasks 2→3 share report status and immutable rate snapshots; cost calculations use these snapshots.
+Pre-flight: Tasks 2→4 share validation and person/report locking; import must use the same locking order.
+Pre-flight: Tasks 1→5 share identity, ownership checks and person locks.
+Pre-flight: Tasks 1–5→6 share deployment configuration and integration tests.
+Task 1: in progress.
+Ruling: Local PostgreSQL 14 is installed; Docker socket is sandbox-inaccessible. Use isolated localhost:55432 PostgreSQL 14 for real transaction tests; compose/CI target 17. Cost: local tests alone do not prove version-17 compatibility; CI will.
+Tasks 1–3: core implementation and tests green: 20 passed on PostgreSQL 14 (`.runtime/tasks123.log`). Task 1 historical-term tests moved into task 2 as planned.
+Task 4: parser/import transaction tests RED (12 missing-feature failures) → GREEN (12 passed, `.runtime/task4-green.log`). UI now includes upload, mapping, preview and confirmation. Remaining: integration/race tests in final verification.
+Task 5: initial RED: 7 missing-feature failures (`.runtime/task5-red.log`); implementation added, full suite running.
+Ruling: Uploads with multiple XLSX sheets require explicit sheet name and re-upload rather than retaining raw files. Cost: extra upload step for multi-sheet historical workbooks; avoids keeping raw files.
+Ruling: Import preview reuses `validate_report(..., entries=unsaved_entries)` so preview and persisted submission share exactly the same limits. Cost: validator now accepts an optional iterable in addition to a saved report.
+Tasks 1–5: 39 tests passed on PostgreSQL (`.runtime/tasks1-5.log`). Investigated teardown warning: worker connections with CONN_MAX_AGE remained open; test helper now closes all thread-local connections explicitly.
+Task 6: production configuration tests initially RED (healthcheck, CSP and clickjacking middleware missing); implementation added. Code formatted with Ruff and relevant checks enabled explicitly to avoid inheriting unrelated global lint rules.
+Ruling: E2E test hooks temporarily allow synchronous ORM while Playwright's internal event loop is active; production does not set DJANGO_ALLOW_ASYNC_UNSAFE. Cost: E2E tests do not exercise Django's async safety guard; application uses synchronous WSGI only.
+Task 6: 57 non-browser tests passed (`.runtime/extended-tests.log`); 3 browser journeys passed (`.runtime/browser-third.log`). Visual review then caught unstyled screenshots: Django live server intercepts manifest-hashed asset URLs instead of using WhiteNoise. A new computed-style assertion failed (RED); test-only source static storage fixes it (GREEN: 3 journeys passed, `.runtime/browser-styled.log`). Production static serving will be checked in the actual Docker image.
+Dependency audit: pip-audit found no known vulnerabilities in the installed environment (`.runtime/dependency-audit.json`). Docker build succeeded (`.runtime/docker-build.log`).
+Ruling: Store screenshots in artifacts/qa rather than pytest-playwright's test-results directory, because that plugin wipes test-results on every pytest invocation. Cost: a separate ignored artifact directory.
+Railway account access verified; no cloud resources created yet. Existing similarly named contractor-timesheets project is deleted; do not reuse or restore it.
+Final review: independent reviewer found no Critical/Important cap, ownership, race or historical-cost defects. First reviewer model unavailable (usage limit); fallback reviewer completed the review.
+Final: Ruling: Re-grade extreme Decimal input returning HTTP 500 as Important for accepted-size import/input error handling; return row/form validation instead. Cost if unchanged: malformed numeric cell interrupts import preview without actionable feedback.
+Final: Ruling: Re-grade whole-workbook deduplication as Important for legitimate multi-sheet history imports; identity now includes resolved worksheet name. Cost: same workbook may be processed once per distinct sheet, while existing-month and cap checks remain unchanged.
+Final: Ruling: Trusted direct database access is outside web authorization controls; no generic ORM/admin bypass endpoint is exposed. Cost: a DBA can still alter data and audit.
+Final: Ruling: Concurrent edits to one draft entry use last committed write; submitted data remains locked and revalidated. Cost: draft edits from multiple tabs are not conflict-detected.
+Final: Ruling: Features explicitly excluded from v1 stay excluded; proxy-IP throttling tradeoff is documented. Cost: no billing/email/integration features and shared-proxy lockouts can require manager reset.
+Final: fixed malformed Excel XML exception — parser test RED→GREEN included in subsequent suite.
+Task 6: production Docker smoke passed (DB readiness, proxy HTTPS behavior, CSP, clickjacking header, hashed CSS). `check --deploy` reports no issues. PostgreSQL17 logical backup/isolated restore verified user count, contracts, submitted report, rate snapshot, absence, login and 800.00 CZK cost.
+Final: fixed both reviewer findings — extreme numeric input and distinct-sheet import tests RED→GREEN; complete suite 64/64 on PostgreSQL17, no warnings (`.runtime/full-pg17-final.log`). Mobile logout regression also RED→GREEN. No deferred code-review minors remain.
+Tasks 1–5: complete (full suite and browser flows verified).
+Task 6: local Docker and recovery verification complete; Railway deployment in progress.
+Railway created project czechitas-time-reports (be0b93a4-59a0-43a9-b767-3a4ae8443047), PostgreSQL service and web service, domain https://web-production-b2fec.up.railway.app. Production env set without exposing secrets.
+Railway backup schedules rejected by provider: only available for Pro workspaces. Asked user asynchronously whether to use Pro/native backups or separate automated private-storage dumps; dependent backup work awaiting this preference. No account plan changes made.
+Ruling: Railway upload from a non-Git directory included development environment and exceeded upload limit. Deploy from explicit allowlisted source staging directory (~214 kB) instead. Cost: subsequent deploys must re-stage the source or initialize Git and verify ignore behavior.
+Railway configuration update: first deployment logs exposed that railway.json is no longer supported for new services and hard-stops 2026-12-01. Generated reviewed .railway/railway.ts partial 'web', variables unmanaged. Safe plan changed only web Docker builder, pre-deploy migration and healthcheck. Applied successfully; database/volume left outside this partial.
+Ruling: Replace legacy railway.json with supported Railway IaC; SDK lives in .railway/package*.json and is excluded from application Docker image. Cost: run npm ci --prefix .railway and config plan/apply for infrastructure changes.
+Automatic approval review rejected registering an account-wide SSH credential; no SSH key was generated or registered. Safer alternative implemented: transactional, first-owner-only bootstrap from temporary application-scoped environment variables, with strong password kept in a mode-600 local access file. Existing owner credentials cannot be reset by this command; same-input concurrent startup is idempotent.
+Ruling: Bootstrap owner during Docker startup rather than adding account-wide SSH access. Cost: temporary BOOTSTRAP_ADMIN_* variables must be removed after first healthy startup; a post-removal redeployment is required and will be verified.
+Bootstrap tests RED→GREEN; full suite now 66/66 on PostgreSQL17 without warnings (`.runtime/full-final-with-bootstrap.log`).
+Railway final release 8d07e51f-9521-4edd-bf5d-d785d6dab951 reached SUCCESS. Live HTTPS verification passed: owner login; reports, calendar, costs, accounts, contracts, import, healthcheck and hashed CSS all return 200; mutation without CSRF returns 403; logout succeeds. Smoke test created no business data.
+Final: Ruling: No Git repository exists, so finishing-a-development-branch's branch/merge menus do not apply. Keep source in the user-provided workspace and deliver the deployed application. Cost: no Git history or PR until user initializes/connects a repository.
+Post-bootstrap cleanup: retained only application DATABASE_URL, SECRET_KEY, DEBUG, ALLOWED_HOSTS and CSRF_TRUSTED_ORIGINS; all BOOTSTRAP_ADMIN_* removed. Redeployed identical verified image. Subsequent public HTTPS login, main pages, CSS, CSRF rejection and logout passed again. Application owner account remains usable.
+Local test containers/network and isolated PostgreSQL14 server stopped/removed; production Railway services remain running.
+Delivery status: all user-requested application features implemented and deployed; tests 66/66, lint/format clean, recovery drill passed. Task 6 remains partial only for automatic cloud backup configuration pending user's explicit preference (native Pro vs separate private storage). Do not claim backups enabled or full production operational acceptance complete.
+
+A redundant restart requested two seconds after an IaC-triggered deployment failed after a successful build, with no runtime logs or provider diagnosis; the successful release stayed available. A later standalone restart 047ecf02-31f7-4c06-8a37-bac199fc9fc8 reached SUCCESS. Public HTTPS checks passed again; no application code changed to mask this platform/deployment overlap.
+Ruling: Let Railway auto-detect the checked-in Dockerfile instead of declaring a builder flag that Railway normalizes away on deployment. Cost: future source must retain root Dockerfile; the current Docker build and restart were verified.
