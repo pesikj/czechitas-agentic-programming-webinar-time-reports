@@ -17,3 +17,7 @@ playwright-report/
 artifacts/
 
 node_modules/
+outputs/test-import-20261026-a01/test-import-august-2026.xlsx
+tests/test_demo_seed.py
+accounts/management/commands/seed_demo_data.py
+docs/demo-data.md
