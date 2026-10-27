@@ -134,3 +134,30 @@ připojení k databázi. Kompletní nasazení, zálohy a obnova: [docs/operation
 Omezení první verze: jedna organizace a CZK, bez fakturace, e-mailových notifikací,
 schvalovacích hierarchií a synchronizace s externími kalendáři. Nasazení a ověření
 obnovy na konkrétním Railway projektu vyžadují přístup k danému projektu.
+
+## Ukázková data pro demonstraci
+
+```sh
+uv run python manage.py seed_demo_data --actor admin
+```
+
+Příkaz vytvoří 3 projekty s kódy `DEMO-*`, 4 externisty `demo_*`, 6 přiřazení
+se sazbami a limity, 8 měsíčních výkazů a 5 budoucích nepřítomností. Výkazy jsou
+z minulého a aktuálního měsíce; při spuštění po čtvrtém pracovním dni mají dohromady
+60 položek. Šest výkazů je odeslaných, dva rozpracované. Tomášův aktuální koncept
+záměrně obsahuje označený den s 8,5 hodinami pro demonstraci blokace odeslání.
+
+Všechna jména/projekty jsou označená DEMO. E-maily používají `.invalid` a účty
+nemají použitelné heslo; správce může pro demonstraci vydat konkrétnímu účtu odkaz
+k nastavení hesla. Absence začínají nejdříve 14 dní po dni prvního spuštění.
+
+Vložení je transakční. Příkaz odmítne kolizi s existujícími názvy a zaznamená
+jednorázové vytvoření do auditu. Další spuštění nic nepřepisuje ani neduplikuje,
+a to ani po změně měsíce nebo ruční úpravě ukázkových dat. Nemá automatický reset.
+
+
+## GitHub deploymenty
+
+`main` nasazuje do produkce, `test` do odděleného Railway test prostředí. Obě
+prostředí čekají na CI. Testovací URL: https://web-test-35ca.up.railway.app.
+Podrobnosti a bezpečné přepínání prostředí: [docs/operations.md](docs/operations.md).

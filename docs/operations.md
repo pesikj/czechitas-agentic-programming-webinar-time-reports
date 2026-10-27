@@ -5,7 +5,7 @@
 1. V Railway vytvořte projekt a PostgreSQL službu s persistentním volume. Databázi
    nevystavujte veřejně, pokud nepotřebujete dočasný přístup pro konkrétní údržbu.
 2. Přidejte aplikační službu z tohoto zdrojového kódu (GitHub nebo Railway CLI).
-   Repozitář zatím není připojen ke GitHubu. Instalujte SDK `npm ci --prefix .railway`,
+   Stávající instalace je připojena ke GitHubu (viz níže). Instalujte SDK `npm ci --prefix .railway`,
    propojte CLI s projektem a spusťte `railway config plan`, pak po kontrole
    `railway config apply --yes`. `.railway/railway.ts` spravuje pouze část `web`,
    volí Dockerfile, před vydáním spouští `python manage.py migrate --noinput` a čeká
@@ -116,3 +116,32 @@ Railway API odmítlo nastavení denních/týdenních záloh: tyto funkce jsou do
 pouze pro Pro workspace. Automatické zálohy proto zatím nejsou nakonfigurované;
 čeká se na rozhodnutí vlastníka o Pro nebo samostatném soukromém úložišti.
 Přechod tarifu se neprovádí automaticky.
+
+
+## GitHub větve a prostředí
+
+Repozitář: `pesikj/czechitas-agentic-programming-webinar-time-reports`.
+
+- `main` → Railway `production`, https://web-production-b2fec.up.railway.app.
+- `test` → Railway `test`, https://web-test-35ca.up.railway.app.
+- Obě prostředí čekají na úspěšné GitHub Actions (Wait for CI).
+- Test má vlastní databázový volume, privátní síť, SECRET_KEY, povolenou doménu a
+  CSRF origin. Jeho DATABASE_URL odkazuje na `${{Postgres.DATABASE_URL}}` v testu.
+  Produkční účty ani data se do něj nekopírují.
+
+Lokální větev `test` sleduje `origin/test`; lokální Railway CLI je propojeno s
+prostředím `test`. Pro produkční příkazy vždy použijte explicitní `--environment production`.
+IaC vybírá GitHub větev podle cílového prostředí, proto plánujte zvlášť:
+
+```sh
+railway config plan --environment test
+railway config plan --environment production
+```
+
+Při nastavování větví ověřte environment-specific deployment triggers. CLI
+`service source connect --branch ...` může změnit zděděnou větev i u ostatních
+prostředí stejné služby; po připojení testu byly triggery explicitně ověřeny a
+produkční trigger opraven na main. Nepoužívejte opakované service-wide připojování
+k přepínání jednotlivých prostředí.
+
+Lokální necommitnuté změny se automaticky do GitHub deploymentů nedostanou.
